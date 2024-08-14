@@ -1,0 +1,12 @@
+﻿Temp/
+Packages/
+Logs/
+Library/
+Assets/TutorialInfo
+Assets/Plugins/
+Assets/Scenes/
+*.csproj
+UserSettings/
+obj/
+*.user
+*.sln
