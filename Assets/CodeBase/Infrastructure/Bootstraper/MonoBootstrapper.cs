@@ -1,4 +1,5 @@
 using UnityEngine;
+using VContainer.Unity;
 
 namespace CodeBase.Infrastructure.Bootstraper
 {

@@ -2,6 +2,7 @@
 using CodeBase.Services.StateMachine.GameStateMachine.GameState;
 using CodeBase.Services.StateMachine.GameStateMachine.Interface;
 using CodeBase.UI.Common;
+using CodeBase.UI.MainUI.Windows;
 
 namespace CodeBase.UI.MainUI
 {
@@ -22,13 +23,13 @@ namespace CodeBase.UI.MainUI
         {
             _mainMenuWindowsWindows = window;
             
-            _mainMenuWindowsWindows.PlayButtonClicked += OnPlayButtonClicked;
+            _mainMenuWindowsWindows.OnPlayButtonClicked += OnPlayButtonClicked;
             _mainMenuWindowsWindows.Cleanuped += OnCleanup;
         }
 
         private void OnCleanup()
         {
-            _mainMenuWindowsWindows.PlayButtonClicked -= OnPlayButtonClicked;
+            _mainMenuWindowsWindows.OnPlayButtonClicked -= OnPlayButtonClicked;
             _mainMenuWindowsWindows.Cleanuped -= OnCleanup;
         }
 

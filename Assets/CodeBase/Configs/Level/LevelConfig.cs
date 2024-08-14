@@ -7,7 +7,6 @@ namespace CodeBase.Configs.Level
     {
         public string LevelName;
         public Vector3 HeroSpawnPoint;
-        public Vector3 FinishPoint;
     }
 }
 

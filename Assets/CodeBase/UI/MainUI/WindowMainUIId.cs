@@ -4,5 +4,6 @@
     {
         Unknown,
         MainMenuWindow,
+        PlayMenuWindow
     }
 }

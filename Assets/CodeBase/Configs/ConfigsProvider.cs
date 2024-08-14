@@ -13,7 +13,7 @@ namespace CodeBase.Configs
         private const string EnemiesConfigsPath = "Configs/Enemies";
         private const string LevelsConfigsPath = "Configs/Levels";
         private const string WindowsConfigsPath = "Configs/Windows";
-        
+
        // private Dictionary<EnemyId, EnemyConfig> _enemies;
         private Dictionary<string, LevelConfig> _levels;
         private Dictionary<WindowMainUIId, WindowConfig> _windows;
@@ -24,6 +24,7 @@ namespace CodeBase.Configs
         
         public void Load()
         {
+            Debug.Log("Loading configs...");
             //_enemies = Resources.LoadAll<EnemyConfig>(EnemiesConfigsPath).ToDictionary(x => x.EnemyId, x => x);
             _windows = Resources.LoadAll<WindowConfig>(WindowsConfigsPath).ToDictionary(x => x.windowId, x => x);
             
@@ -48,6 +49,7 @@ namespace CodeBase.Configs
 
         public WindowConfig GetWindowConfig(WindowMainUIId id)
         {
+            Debug.Log(id);
             return _windows[id];
         }
     }

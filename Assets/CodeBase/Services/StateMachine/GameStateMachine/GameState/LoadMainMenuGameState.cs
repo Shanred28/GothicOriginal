@@ -1,6 +1,5 @@
 using CodeBase.Services.Scene;
 using CodeBase.Services.StateMachine.Common.Interface;
-using CodeBase.Services.StateMachine.GameStateMachine.Interface;
 using CodeBase.Services.WindowsProvider;
 using CodeBase.UI.MainUI;
 

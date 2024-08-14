@@ -10,3 +10,8 @@ UserSettings/
 obj/
 *.user
 *.sln
+*.xml
+Assets/TextMesh Pro/
+*.3ds
+Assets/Surface_TreeTopFix_Final_WithMountain.3ds.meta
+Assets/Prafabs/
