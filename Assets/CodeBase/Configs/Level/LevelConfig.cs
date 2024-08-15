@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace CodeBase.Configs.Level
 {
-    [CreateAssetMenu(fileName = "LevelConfig", menuName = "CodeBase/Configs/Levels/LevelConfig", order = 1)]
+    [CreateAssetMenu(fileName = "LevelConfig", menuName = "Configs/Levels/LevelConfig", order = 1)]
     public class LevelConfig : ScriptableObject
     {
         public string LevelName;

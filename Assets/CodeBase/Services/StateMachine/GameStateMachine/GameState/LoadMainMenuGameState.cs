@@ -1,7 +1,6 @@
 using CodeBase.Services.Scene;
 using CodeBase.Services.StateMachine.Common.Interface;
 using CodeBase.Services.WindowsProvider;
-using CodeBase.UI.MainUI;
 
 namespace CodeBase.Services.StateMachine.GameStateMachine.GameState
 {
@@ -18,7 +17,7 @@ namespace CodeBase.Services.StateMachine.GameStateMachine.GameState
         
         public void Enter()
         {
-            _sceneLoader.Load(Constant.MainMenuSceneName, onLoaded: () => _windowsProvider.OpenWindow(WindowMainUIId.MainMenuWindow));
+            _sceneLoader.Load(Constant.MainMenuSceneName);
         }
     }
 }

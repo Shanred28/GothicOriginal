@@ -53,7 +53,6 @@ namespace CodeBase.Services.Factory.UIFactory
 
         private void InjectToGameObject(GameObject gameObject)
         {
-            // Здесь вы можете добавить логику для инъекции зависимостей в новый объект, если это необходимо
             _container.Inject(gameObject);
         }
     }

@@ -27,7 +27,7 @@ namespace CodeBase.Services.StateMachine.GameStateMachine.GameState
             
             if (SceneManager.GetActiveScene().name == Constant.BootStrapSceneName || SceneManager.GetActiveScene().name == Constant.MainMenuSceneName)
             {
-                Debug.Log("GLOBAL: BootStrap");
+                Debug.Log("GLOBAL: LoadMainMenuGameState");
                 _gameStateSwitcher.EnterState<LoadMainMenuGameState>();
             }
             

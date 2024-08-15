@@ -1,40 +1,30 @@
+using CodeBase.Infrastructure.Bootstraper;
+using CodeBase.Services.StateMachine.LevelStateMachine;
+using CodeBase.Services.StateMachine.LevelStateMachine.Interface;
+using CodeBase.Services.StateMachine.LevelStateMachine.LevelState;
+using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 namespace CodeBase.Infrastructure.Installers
 {
-    public class LevelInstaller : LifetimeScope
+    public class LevelInstaller : SceneContext.SceneContext
     {
-        /*[SerializeField] private LevelStateMachineTicker ticker;
-        public override void InstallBindings()
+        protected override void RegisterLevelServices(IContainerBuilder builder)
         {
             Debug.Log("LEVEL: Install");
+            builder.RegisterEntryPoint<LevelBootstrapper>();
             
-            _dIContainer.RegisterSingle(ticker);
-            
-            RegisterLevelStateMachine();
         }
         
-        private void OnDestroy()
+        protected override void RegisterLevelStateMachine(IContainerBuilder builder)
         {
-            _dIContainer.Unregister<LevelStateMachineTicker>();
-            
-            UnregisterLevelStateMachine();
+            builder.Register<ILevelStateSwitcher, LevelStateMachine>(Lifetime.Singleton);
+
+            builder.Register<LevelBootstrapState>(Lifetime.Singleton);
+            builder.Register<LevelBootstrapMainMenuState>(Lifetime.Singleton);
+            builder.Register<LevelBootstrapMainSceneState>(Lifetime.Singleton);
         }
-        
-        private void RegisterLevelStateMachine()
-        {
-            _dIContainer.RegisterSingle<ILevelStateSwitcher, LevelStateMachine>();
-            _dIContainer.RegisterSingle<LevelBootstrapState>();
-            _dIContainer.RegisterSingle<LevelLostState>();
-            _dIContainer.RegisterSingle<LevelResearcherState>();
-            _dIContainer.RegisterSingle<LevelVictoryState>();
-        }
-        
-        private void UnregisterLevelStateMachine()
-        {
-            _dIContainer.Unregister<ILevelStateSwitcher>();
-            _dIContainer.Unregister<LevelBootstrapState>();
-        }*/
     }
 }
 
