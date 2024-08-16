@@ -1,4 +1,3 @@
-using System;
 using CodeBase.GamePlay.Common;
 using CodeBase.GamePlay.Player.ControllerCharacter;
 using UnityEngine;
@@ -11,11 +10,13 @@ namespace CodeBase.GamePlay.Player
 
         private CharacterInputController _characterInputController;
         private CharacterMovementHuman _characterMovementHuman;
+        private CharacterAnimationState _characterAnimationState;
 
         private void Start()
         {
             _characterMovementHuman = new CharacterMovementHuman(playerInfo);
             _characterInputController = new CharacterInputController(_characterMovementHuman, playerInfo.ThirdPersonCamera);
+            _characterAnimationState = new CharacterAnimationState(playerInfo,_characterMovementHuman);
             
             Initialize();
         }
@@ -24,6 +25,7 @@ namespace CodeBase.GamePlay.Player
         {
             _characterMovementHuman.Enter();
             _characterInputController.Enter();
+            _characterAnimationState.Enter();
         }
     }
 }

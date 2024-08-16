@@ -34,6 +34,9 @@ namespace CodeBase.GamePlay.Common
         private bool _isSliding;
         private Vector3 _slopeSlideVelocity;
         private float _ySpeed;
+        
+        private float _distanceForRayToGround;
+        private float _distanceForRaySlopeSlide;
 
         public CharacterMovementHuman(PlayerInfoHolder playerInfoHolder)
         {
@@ -50,6 +53,8 @@ namespace CodeBase.GamePlay.Common
             _jumpSpeed = _playerInfoHolder.JumpSpeed;
             _accelerationRate = _playerInfoHolder.AccelerationRate;
             _ySpeed = _playerInfoHolder.SpeedSlider;
+            _distanceForRayToGround = _playerInfoHolder.DistanceForRayToGround;
+            _distanceForRaySlopeSlide = _playerInfoHolder.DistanceForRaySlopeSlide;
             
             Ticker.RegisterUpdateable(this);
             Ticker.RegisterFixedUpdateable(this);
@@ -86,7 +91,7 @@ namespace CodeBase.GamePlay.Common
 
                 _movementDirections = _controllingModel.TransformDirection(_movementDirections);
                 _movementDirections += Physics.gravity * Time.fixedDeltaTime;
-                /*        if (UpdatePosition == true)*/
+               
                 _characterController.Move(_movementDirections * Time.fixedDeltaTime);
             }
             
@@ -117,16 +122,20 @@ namespace CodeBase.GamePlay.Common
         public void Sprint()
         {
             if (IsGrounded == false) return;
-            if (IsCrouch == true) return;
+            if (IsCrouch) return;
 
-            if (IsSprint == true) IsSprint = false;
-            else IsSprint = true;
+            if (IsSprint)
+            {
+                IsSprint = false;
+            }
+            else 
+                IsSprint = true;
         }
         
         public void Jump()
         {
             if (IsGrounded == false) return;
-            if (IsFight == true || IsCrouch == true) return;
+            if (IsFight || IsCrouch) return;
 
             IsJump = true;
         }
@@ -141,7 +150,7 @@ namespace CodeBase.GamePlay.Common
         
         private void SetSlopeSlide()
         {
-            if (Physics.Raycast(_controllingModel.position, Vector3.down, out RaycastHit hitInfo, 1f))
+            if (Physics.Raycast(_controllingModel.position, Vector3.down, out RaycastHit hitInfo, _distanceForRaySlopeSlide))
             {
                 float angle = Vector3.Angle(hitInfo.normal,Vector3.up);
 
@@ -167,7 +176,7 @@ namespace CodeBase.GamePlay.Common
         }
         private void UpdateDistanceToGround()
         {
-            if (Physics.Raycast(_controllingModel.position, Vector3.down, out RaycastHit hit, 20) == true)
+            if (Physics.Raycast(_controllingModel.position, Vector3.down, out RaycastHit hit, _distanceForRayToGround))
             {
                 _distanceToGround = Vector3.Distance(_controllingModel.position, hit.point);
             }

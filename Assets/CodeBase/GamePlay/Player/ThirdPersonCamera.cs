@@ -11,7 +11,7 @@ namespace CodeBase.GamePlay.Player
         [SerializeField] private Transform targetCameraFollowPoint;
         [SerializeField] private Transform playerModel;
 
-        [SerializeField] private float rotationSpeed;
+        [SerializeField] private float rotationSpeedHorizontal, rotationSpeedVertical;
         [SerializeField] private float minAngle ,maxAngle;
 
         private void Start()
@@ -27,10 +27,10 @@ namespace CodeBase.GamePlay.Player
         public void OnUpdate()
         {
             //Horizontal
-            targetCameraFollowPoint.rotation *= Quaternion.AngleAxis(RotationControl.x * rotationSpeed, Vector3.up);
+            targetCameraFollowPoint.rotation *= Quaternion.AngleAxis(RotationControl.x * rotationSpeedHorizontal, Vector3.up);
 
             //Vertical
-            targetCameraFollowPoint.rotation *= Quaternion.AngleAxis(-RotationControl.y * rotationSpeed, Vector3.right);
+            targetCameraFollowPoint.rotation *= Quaternion.AngleAxis(-RotationControl.y * rotationSpeedVertical, Vector3.right);
 
             AngleCameraRotation();
         }
