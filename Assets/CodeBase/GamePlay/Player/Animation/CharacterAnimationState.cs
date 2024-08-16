@@ -4,11 +4,14 @@ using CodeBase.Common.Ticker.Interfaces;
 using CodeBase.GamePlay.Common;
 using CodeBase.GamePlay.Player;
 using UnityEngine;
+using UniRx;
 
 public class CharacterAnimationState : ILogic, ILateUpdateable
 {
     private const float INPUT_CONTROL_LERP = 10f;
 
+    private readonly CompositeDisposable _disposables = new CompositeDisposable();
+    
     private readonly PlayerInfoHolder _playerInfoHolder;
     
     private CharacterController _targetCharacterController;
@@ -43,27 +46,30 @@ public class CharacterAnimationState : ILogic, ILateUpdateable
         _targetAnimator = _playerInfoHolder.TargetAnimator;
         _minDistanceToGroundByFall = _playerInfoHolder.MinDistanceToGroundByFall;
         
+        SubscribeReactiveProperty();
         Ticker.RegisterLateUpdateable(this);
     }
-    
+
+    private void SubscribeReactiveProperty()
+    {
+        _characterMovement.IsSprint.Subscribe( v => _targetAnimator.SetBool(_animatorParametersName.Sprint, v)).AddTo(_disposables);
+        _characterMovement.IsCrouch.Subscribe(v => _targetAnimator.SetBool(_animatorParametersName.Crouch, v)).AddTo(_disposables);
+        _characterMovement.IsFight.Subscribe(v => _targetAnimator.SetBool(_animatorParametersName.Fight, v)).AddTo(_disposables);
+        _characterMovement.IsGrounded.Subscribe(v => _targetAnimator.SetBool(_animatorParametersName.Ground, v)).AddTo(_disposables);
+    }
+
     public void OnLateUpdate()
     {
-        Vector3 movementSpeed = _targetTransform.InverseTransformDirection(_targetCharacterController.velocity);
+         Vector3 movementSpeed = _targetTransform.InverseTransformDirection(_targetCharacterController.velocity);
         _inputControl = Vector3.MoveTowards(_inputControl, _characterMovement.DirectionControl, Time.deltaTime * INPUT_CONTROL_LERP);
         _targetAnimator.SetFloat(_animatorParametersName.NormolizeMovementX, _inputControl.x);
         _targetAnimator.SetFloat(_animatorParametersName.NormolizeMovementZ, _inputControl.z);
-
-        _targetAnimator.SetBool(_animatorParametersName.Sprint, _characterMovement.IsSprint);
-        _targetAnimator.SetBool(_animatorParametersName.Crouch, _characterMovement.IsCrouch);
-        _targetAnimator.SetBool(_animatorParametersName.Fight, _characterMovement.IsFight);
-        _targetAnimator.SetBool(_animatorParametersName.Ground, _characterMovement.IsGrounded);
-
 
         Vector3 groundSpeed = _targetCharacterController.velocity;
         groundSpeed.y = 0;
         _targetAnimator.SetFloat(_animatorParametersName.GroundSpeed, groundSpeed.magnitude);
 
-        if (_characterMovement.IsJump == true)
+        if (_characterMovement.IsJump)
         {
             if (groundSpeed.magnitude <= 0.03f)
             {
@@ -76,7 +82,7 @@ public class CharacterAnimationState : ILogic, ILateUpdateable
             }
         }
 
-        if (_characterMovement.IsGrounded == false && _characterMovement.IsGrounded == false)
+        if (_characterMovement.IsGrounded.Value == false && _characterMovement.IsGrounded.Value == false)
         {
             _targetAnimator.SetFloat(_animatorParametersName.Jump, movementSpeed.y);
 
@@ -99,6 +105,7 @@ public class CharacterAnimationState : ILogic, ILateUpdateable
 
     public void Exit()
     {
+        _disposables.Clear();
         Ticker.UnregisterLateUpdateable(this);
     }
 }

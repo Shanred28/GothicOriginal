@@ -2,6 +2,7 @@ using CodeBase.Common.Interface;
 using CodeBase.Common.Ticker;
 using CodeBase.Common.Ticker.Interfaces;
 using CodeBase.GamePlay.Player;
+using UniRx;
 using UnityEngine;
 
 namespace CodeBase.GamePlay.Common
@@ -9,15 +10,21 @@ namespace CodeBase.GamePlay.Common
     public class CharacterMovementHuman : IUpdateable,IFixedUpdateable, ILogic
     {
         public float DistanceToGround => _distanceToGround;
-        public bool IsGrounded => _characterController.isGrounded || _distanceToGround < 0.09f;
         public float CurrentSpeed => GetCurrentSpeedByState();
         public Vector3 TargetDirectionControl;
+
+        #region PublicReactiveProperties
+
+        public readonly BoolReactiveProperty IsSprint;
+        public readonly BoolReactiveProperty IsCrouch;
+        public readonly BoolReactiveProperty IsFight;
+        public readonly BoolReactiveProperty IsGrounded;
+
+        #endregion
         
-        public bool IsSprint;
-        public bool IsCrouch;
-        public bool IsFight;
+        
         public bool IsJump;
-       
+      
         public Vector3 DirectionControl;
         private Vector3 _movementDirections;
         
@@ -41,6 +48,11 @@ namespace CodeBase.GamePlay.Common
         public CharacterMovementHuman(PlayerInfoHolder playerInfoHolder)
         {
             _playerInfoHolder = playerInfoHolder;
+            
+            IsSprint = new BoolReactiveProperty();
+            IsCrouch = new BoolReactiveProperty();
+            IsFight = new BoolReactiveProperty();
+            IsGrounded = new BoolReactiveProperty();
         }
         
         public void Enter()
@@ -80,10 +92,10 @@ namespace CodeBase.GamePlay.Common
 
         private void Move()
         {
-            if (IsGrounded == true && _isSliding == false)
+            if (IsGrounded.Value && _isSliding == false)
             {
                 _movementDirections = DirectionControl * GetCurrentSpeedByState();
-                if (IsJump == true)
+                if (IsJump)
                 {
                     _movementDirections.y = _jumpSpeed;
                     IsJump = false;
@@ -121,28 +133,28 @@ namespace CodeBase.GamePlay.Common
         }
         public void Sprint()
         {
-            if (IsGrounded == false) return;
-            if (IsCrouch) return;
+            if (IsGrounded.Value == false) return;
+            if (IsCrouch.Value) return;
 
-            if (IsSprint)
+            if (IsSprint.Value)
             {
-                IsSprint = false;
+                IsSprint.Value = false;
             }
             else 
-                IsSprint = true;
+                IsSprint.Value = true;
         }
         
         public void Jump()
         {
-            if (IsGrounded == false) return;
-            if (IsFight || IsCrouch) return;
+            if (IsGrounded.Value == false) return;
+            if (IsFight.Value || IsCrouch.Value) return;
 
             IsJump = true;
         }
         
         public float GetCurrentSpeedByState()
         {
-            if (IsSprint)
+            if (IsSprint.Value)
                 return _runSpeed;
 
             return _walkSpeed;
@@ -180,6 +192,8 @@ namespace CodeBase.GamePlay.Common
             {
                 _distanceToGround = Vector3.Distance(_controllingModel.position, hit.point);
             }
+            
+            IsGrounded.Value = _characterController.isGrounded || _distanceToGround < 0.09f;
         }
     }
 }

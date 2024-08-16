@@ -1,3 +1,5 @@
+using System;
+
 namespace CodeBase.Common.Interface
 {
     public interface ILogic
