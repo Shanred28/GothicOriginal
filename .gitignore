@@ -4,7 +4,6 @@ Logs/
 Library/
 Assets/TutorialInfo
 Assets/Plugins/
-Assets/Scenes/
 *.csproj
 UserSettings/
 obj/
@@ -14,5 +13,4 @@ obj/
 Assets/TextMesh Pro/
 *.3ds
 Assets/Surface_TreeTopFix_Final_WithMountain.3ds.meta
-Assets/Prafabs/
 Assets/CodeBase/Common/Timer/
