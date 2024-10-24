@@ -1,21 +1,22 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
+using UniRx;
 
 namespace CodeBase.GamePlay.Player
 {
     public class IKFootPlayer : MonoBehaviour
     {
+        [SerializeField] private CharacterController controller;
         [SerializeField] private Animator animator;
         [SerializeField] private Transform root;
-        
+
         private Transform _leftFoot;
         private Transform _rightFoot;
-        
-        [Range(0f, 1f)]
-        [SerializeField] private float leftFootWeight;
-        [Range(0f, 1f)]
-        [SerializeField] private float rightFootWeight;
-        
+
+        [Range(0f, 1f)] [SerializeField] private float leftFootWeight;
+        [Range(0f, 1f)] [SerializeField] private float rightFootWeight;
+
         private Vector3 _leftFootPosition;
         private Vector3 _rightFootPosition;
         private Quaternion _leftFootRotation;
@@ -26,7 +27,7 @@ namespace CodeBase.GamePlay.Player
 
         [SerializeField] private float clampWeight;
         [SerializeField] private Transform targetPosition;
-        
+
         [SerializeField] private Transform targetLeft;
         [SerializeField] private Transform targetRight;
 
@@ -39,15 +40,23 @@ namespace CodeBase.GamePlay.Player
         [Range(0f, 1f)] [SerializeField] private float moveWalk;
         [SerializeField] private float acselerateRateeMoveLeg;
 
+        [SerializeField] private float timeForDefaultLegsPosition;
+
         private float _leftFootStart;
-        
-        [SerializeField] private AnimationCurve  moveLeftLeg;
-        [SerializeField] private AnimationCurve  moveLegPerY;
-        
+
+        [SerializeField] private AnimationCurve moveLeftLeg;
+
+        [FormerlySerializedAs("moveLegPerY")] [SerializeField]
+        private AnimationCurve moveLegPerYForForward;
+
+        [SerializeField] private AnimationCurve moveLegPerYForBackward;
+
         [SerializeField] private float rateForLerpMoveLeg;
-        
+
         [SerializeField] private Transform pointForLeftLeg;
-        
+        [SerializeField] private Transform pointForRightLeg;
+        [SerializeField] private float stepWidth = 0.45f;
+
         private void Start()
         {
             _leftFoot = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
@@ -55,191 +64,248 @@ namespace CodeBase.GamePlay.Player
             _leftFootRotation = _leftFoot.rotation;
             _rightFoot = animator.GetBoneTransform(HumanBodyBones.RightFoot);
             _rightFootRotation = _rightFoot.rotation;
-           // animator.SetBool("IsSprint", true);
+
+            _defaultPointForLeftLeg = pointForLeftLeg.localPosition;
+            _defaultPointForRightLeg = pointForRightLeg.localPosition;
+            animator.SetBool("IsSprint", true);
         }
 
-        private bool isLeftMoveEnd;
-        private bool isRightMoveEnd;
-        
-        private float leftHight;
-        private float rightHight;
+        private bool _isLeftMoveForward;
+        private bool _isRightMoveForward = false;
+        private bool _isRightMoveEnd;
+
+        private bool _isStartMove;
+        private Vector3 _posTransform;
+        private Vector3 _posTransformRight;
+        private bool _isCanSteepRightFoot;
+        private bool _isCanSteepLeftFoot;
+
+        private Vector3 _defaultPointForLeftLeg;
+        private Vector3 _defaultPointForRightLeg;
+
+        private bool _isControlLegs;
+
+        private IDisposable _timerForLegDefault;
+        private IDisposable _updateForLegIdle;
 
         private void Update()
         {
-            
             Vector3 lPos = _leftFoot.position;
-            if (moveWalk > 0)
+            Vector3 rPos = _rightFoot.position;
+            
+
+            if (controller.velocity.magnitude > 0.1f)
             {
-                targetForLeft.position = new Vector3(targetForLeft.position.x, targetForLeft.position.y,leftPos);
+                _timerForLegDefault?.Dispose();
+                _updateForLegIdle?.Dispose();
                 
-                if (isLeftMoveEnd)
+                if (_isStartMove)
                 {
-                    pointForLeftLeg.position = Vector3.MoveTowards(pointForLeftLeg.position, new Vector3(pointForLeftLeg.position.x, pointForLeftLeg.position.y,1.1f), Time.deltaTime * acselerateRateeMoveLeg);
-                    rightPos = Mathf.MoveTowards(rightPos, -1.1f, Time.deltaTime * acselerateRateeMoveLeg);
-                    Debug.Log("Left leg +");
-                    Debug.Log(pointForLeftLeg.localPosition.z);
-                    if (pointForLeftLeg.localPosition.z >= 0.45f) isLeftMoveEnd = false;
+                    _isRightMoveForward = !_isLeftMoveForward;
+                    _isCanSteepLeftFoot = true;
+                    _isStartMove = false;
+                }
+
+                //Move left leg
+                if (pointForLeftLeg.localPosition.z <= -stepWidth && _isLeftMoveForward == false)
+                {
+                    _isLeftMoveForward = true;
+                }
+
+                if (_isLeftMoveForward && _isCanSteepLeftFoot)
+                {
+                    _isCanSteepRightFoot = false;
+                    pointForLeftLeg.position = Vector3.MoveTowards(pointForLeftLeg.position,
+                        new Vector3(pointForLeftLeg.position.x, pointForLeftLeg.position.y,
+                            pointForLeftLeg.position.z + 1.1f), Time.deltaTime * acselerateRateeMoveLeg);
+
+                    if (pointForLeftLeg.localPosition.z >= stepWidth)
+                    {
+                        _isCanSteepRightFoot = true;
+                        _isLeftMoveForward = false;
+                        _posTransform = pointForLeftLeg.position;
+                    }
                 }
                 else
                 {
-                    pointForLeftLeg.position = Vector3.MoveTowards(pointForLeftLeg.position, new Vector3(pointForLeftLeg.position.x, pointForLeftLeg.position.y,-1.1f), Time.deltaTime * acselerateRateeMoveLeg);
-                    rightPos = Mathf.MoveTowards(rightPos, 1.1f, Time.deltaTime * acselerateRateeMoveLeg);
-                    Debug.Log("Left leg -");
-                    Debug.Log(pointForLeftLeg.localPosition.z);
-                    if (pointForLeftLeg.localPosition.z <= -0.45f) isLeftMoveEnd = true;
+                    var changeDistance = _posTransform.z - transform.position.z;
+                    pointForLeftLeg.localPosition = new Vector3(pointForLeftLeg.localPosition.x,
+                        pointForLeftLeg.localPosition.y, changeDistance);
                 }
-                
-               
-                if(Physics.Raycast(pointForLeftLeg.position + Vector3.up * 0.5f, Vector3.down, out RaycastHit leftHit, 2))
+
+
+                //Move right leg
+                if (pointForRightLeg.localPosition.z <= -stepWidth && _isRightMoveForward == false)
                 {
-                    _leftFootPosition= Vector3.MoveTowards(lPos, leftHit.point + Vector3.up * offsetY, Time.deltaTime * rateForLerpMoveLeg);
-                    _leftFootRotation= Quaternion.FromToRotation(_leftFoot.up, leftHit.normal) * _leftFoot.rotation;
+                    _isRightMoveForward = true;
                 }
-                Debug.DrawRay(pointForLeftLeg.position + Vector3.up * 0.5f, Vector3.down, Color.red);
-            }
-            else
-            {
-                if (Physics.Raycast(lPos + Vector3.up * 0.5f, Vector3.down, out RaycastHit leftHit, 2))
+
+                if (_isRightMoveForward && _isCanSteepRightFoot)
                 {
-                    //TODO для Idle
-                    _leftFootPosition = Vector3.Lerp(lPos, leftHit.point + Vector3.up * offsetY, Time.deltaTime * 30f);
+                    _isCanSteepLeftFoot = false;
+                    pointForRightLeg.position = Vector3.MoveTowards(pointForRightLeg.position,
+                        new Vector3(pointForRightLeg.position.x, pointForRightLeg.position.y,
+                            pointForRightLeg.position.z + 1.1f), Time.deltaTime * acselerateRateeMoveLeg);
+
+                    if (pointForRightLeg.localPosition.z >= stepWidth)
+                    {
+                        _isCanSteepLeftFoot = true;
+                        _isRightMoveForward = false;
+                        _posTransformRight = pointForRightLeg.position;
+                    }
+                }
+                else
+                {
+                    var changeDistance = _posTransformRight.z - transform.position.z;
+                    pointForRightLeg.localPosition = new Vector3(pointForRightLeg.localPosition.x,
+                        pointForRightLeg.localPosition.y, changeDistance);
+                }
+
+                //Move left foot to target on ground
+                if (Physics.Raycast(pointForLeftLeg.position + Vector3.up * 0.5f, Vector3.down, out RaycastHit leftHit,
+                        2))
+                {
+                    float directionLegLeftForOffsetY;
+
+                    if (_isLeftMoveForward)
+                    {
+                        directionLegLeftForOffsetY = moveLegPerYForForward.Evaluate(pointForLeftLeg.localPosition.z);
+                    }
+                    else
+                    {
+                        directionLegLeftForOffsetY = 0;
+                    }
+
+                    _leftFootPosition = Vector3.MoveTowards(lPos,
+                        leftHit.point + Vector3.up * (offsetY + directionLegLeftForOffsetY),
+                        Time.deltaTime * rateForLerpMoveLeg);
                     _leftFootRotation = Quaternion.FromToRotation(transform.up, leftHit.normal) * transform.rotation;
                 }
-            
-                leftPos = Mathf.MoveTowards(leftPos, 0f, Time.deltaTime * acselerateRateeMoveLeg);
-                rightPos = Mathf.MoveTowards(rightPos, 0f, Time.deltaTime * acselerateRateeMoveLeg);
+
+                Debug.DrawRay(pointForLeftLeg.position + Vector3.up * 0.5f, Vector3.down, Color.red);
+
+                //Move right foot to target on ground
+                if (Physics.Raycast(pointForRightLeg.position + Vector3.up * 0.5f, Vector3.down,
+                        out RaycastHit rightHit, 2))
+                {
+                    float directionLegRightForOffsetY;
+
+                    if (_isRightMoveForward)
+                    {
+                        directionLegRightForOffsetY = moveLegPerYForForward.Evaluate(pointForRightLeg.localPosition.z);
+                    }
+                    else
+                    {
+                        directionLegRightForOffsetY = 0;
+                    }
+
+                    _rightFootPosition = Vector3.MoveTowards(rPos,
+                        rightHit.point + Vector3.up * (offsetY + directionLegRightForOffsetY),
+                        Time.deltaTime * rateForLerpMoveLeg);
+                    _rightFootRotation = Quaternion.FromToRotation(transform.up, rightHit.normal) * transform.rotation;
+                }
+
+                Debug.DrawRay(pointForRightLeg.position + Vector3.up * 0.5f, Vector3.down, Color.blue);
+
+
+                /*var body = animator.GetBoneTransform(HumanBodyBones.Hips);
+                if (Physics.Raycast(body.position, Vector3.down, out RaycastHit bodyHit, 2))
+                {
+                    if (Vector3.Distance(body.position, bodyHit.point) < offsetBodyY ||Vector3.Distance(body.position, bodyHit.point) > offsetBodyY)
+                    {
+                        root.transform.position = Vector3.Lerp(root.transform.position, new Vector3(root.transform.position.x, root.transform.position.y + offsetBodyY- Vector3.Distance(body.position, bodyHit.point),root.transform.position.z), Time.deltaTime * 30f);
+                    }
+                }*/
+            }
+            else  // Move legs and fix on ground
+            {
+                StoppedAfterMoving();
             }
         }
 
         private void OnAnimatorIK(int layerIndex)
         {
-            if (moveWalk > 0)
+            // При движение включаем полный контрроль за ногами.
+            animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, 1f);
+            animator.SetIKRotationWeight(AvatarIKGoal.LeftFoot, 1f);
+            animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, 1f);
+            animator.SetIKRotationWeight(AvatarIKGoal.RightFoot, 1f);
+
+            //Устанавливаем значения для ног.
+            animator.SetIKPosition(AvatarIKGoal.LeftFoot, _leftFootPosition);
+            animator.SetIKRotation(AvatarIKGoal.LeftFoot, _leftFootRotation);
+
+            animator.SetIKPosition(AvatarIKGoal.RightFoot, _rightFootPosition);
+            animator.SetIKRotation(AvatarIKGoal.RightFoot, _rightFootRotation);
+        }
+
+        private bool _isStay;
+        private void StoppedAfterMoving()
+        {
+            //if (_isStay == false) return;
+            
+            if (Physics.Raycast(_leftFoot.position + Vector3.up * 0.5f, Vector3.down, out RaycastHit leftHit, 2))
             {
-                // При движение включаем полный контрроль за ногами.
-                animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot,  1f);
-                animator.SetIKRotationWeight(AvatarIKGoal.LeftFoot, 1f);
-                animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, 1f);
-                animator.SetIKRotationWeight(AvatarIKGoal.RightFoot, 1f);
-                
-                //Устанавливаем значения для ног.
-                animator.SetIKPosition(AvatarIKGoal.LeftFoot, _leftFootPosition);
-                animator.SetIKRotation(AvatarIKGoal.LeftFoot, _leftFootRotation);
+                _leftFootPosition = Vector3.MoveTowards(_leftFoot.position, leftHit.point + Vector3.up * offsetY,
+                    Time.deltaTime * rateForLerpMoveLeg);
+                _leftFootRotation = Quaternion.FromToRotation(transform.up, leftHit.normal) * transform.rotation;
             }
-            else
+
+            if (Physics.Raycast(_rightFoot.position+ Vector3.up * 0.5f, Vector3.down, out RaycastHit rightHit, 2))
             {
-                //Это отлично рабатает для Idle.
-                var leftWeight =  moveLeftLeg.Evaluate(Mathf.Abs(leftPos));
-                var rightWeight =  moveLeftLeg.Evaluate(Mathf.Abs(rightPos));
-                animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot,  leftWeight);
-                animator.SetIKRotationWeight(AvatarIKGoal.LeftFoot, leftWeight);
-                animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, rightWeight);
-                animator.SetIKRotationWeight(AvatarIKGoal.RightFoot, rightWeight);
-                
-                animator.SetIKPosition(AvatarIKGoal.LeftFoot, _leftFootPosition);
-                animator.SetIKRotation(AvatarIKGoal.LeftFoot, _leftFootRotation);
-                animator.SetIKPosition(AvatarIKGoal.RightFoot, _rightFootPosition);
-                animator.SetIKRotation(AvatarIKGoal.RightFoot, _rightFootRotation);
+                _rightFootPosition = Vector3.MoveTowards(_rightFoot.position, rightHit.point + Vector3.up * offsetY,
+                    Time.deltaTime * rateForLerpMoveLeg);
+                _rightFootRotation = Quaternion.FromToRotation(transform.up, rightHit.normal) * transform.rotation;
             }
+
+            /*if (!_isStartMove)
+            {
+                _isStay = true;
+                _timerForLegDefault = Observable.Timer(TimeSpan.FromSeconds(timeForDefaultLegsPosition))
+                    .Subscribe(_ =>
+                        {
+                            ResetToDefaultPositionPointForLeg();
+                        }
+                    );
+            }*/
+
+            _isStartMove = true;
+
+            /**/
+        }
+
+        private void ResetToDefaultPositionPointForLeg()
+        {
+            //_isStay = false;
+            pointForLeftLeg.localPosition = _defaultPointForLeftLeg;
+            pointForRightLeg.localPosition = _defaultPointForRightLeg;
+            
+            _updateForLegIdle = Observable.EveryUpdate().Subscribe(_ =>
+            {
+                RaycastHit leftHit;
+                
+                if (Physics.Raycast(pointForLeftLeg.position + Vector3.up * 0.5f, Vector3.down, out leftHit, 2))
+                {
+                    _leftFootPosition = Vector3.MoveTowards(_leftFoot.position, leftHit.point + Vector3.up * offsetY,
+                        Time.deltaTime * rateForLerpMoveLeg);
+                    _leftFootRotation = Quaternion.FromToRotation(transform.up, leftHit.normal) * transform.rotation;
+                }
+
+                RaycastHit rightHit;
+                if (Physics.Raycast(pointForRightLeg.position + Vector3.up * 0.5f, Vector3.down, out rightHit, 2))
+                {
+                    _rightFootPosition = Vector3.MoveTowards(_rightFoot.position, rightHit.point + Vector3.up * offsetY,
+                        Time.deltaTime * rateForLerpMoveLeg);
+                    _rightFootRotation = Quaternion.FromToRotation(transform.up, rightHit.normal) * transform.rotation;
+                }
+                
+                if((Vector3.Distance(_leftFootPosition, leftHit.point) < 0.1f) || (Vector3.Distance(_rightFootPosition, rightHit.point) < 0.1f))
+                {
+                    _isStay = true;
+                    Debug.Log("Despose Stay");
+                    _updateForLegIdle.Dispose();
+                }
+            });
         }
     }
 }
-
- /*private void Update()
-        {
-            if (moveWalk > 0)
-            {
-                //TODO При таком движется как хромой инвалид с дрыном в жопе. Движения должны мб идти через кривую. Думать.
-                if (isLeftMoveEnd)
-                {
-                    leftPos = Mathf.MoveTowards(leftPos, 1.1f, Time.deltaTime *acselerateRateeMoveLeg);
-                    rightPos = Mathf.MoveTowards(rightPos, -1.1f, Time.deltaTime * acselerateRateeMoveLeg);
-                    if(leftPos >= 1f) isLeftMoveEnd = false;
-                }
-                else
-                {
-                    leftPos = Mathf.MoveTowards(leftPos, -1.1f, Time.deltaTime * acselerateRateeMoveLeg );
-                    rightPos = Mathf.MoveTowards(rightPos, 1.1f, Time.deltaTime * acselerateRateeMoveLeg);
-                    if(leftPos <= -1f) isLeftMoveEnd = true;
-                }
-            }
-            else
-            {
-                leftPos = Mathf.MoveTowards(leftPos, 0f, Time.deltaTime * acselerateRateeMoveLeg);
-                rightPos = Mathf.MoveTowards(rightPos, 0f, Time.deltaTime * acselerateRateeMoveLeg);
-            }
-
-            targetForLeft.localPosition= new Vector3(targetForLeft.localPosition.x, targetForLeft.localPosition.y, leftPos);
-            targetForRight.localPosition = new Vector3(targetForRight.localPosition.x, targetForRight.localPosition.y, rightPos);
-            
-            
-            //Vector3 lPos = _leftFoot.position;
-            if(Physics.Raycast(animator.GetBoneTransform(HumanBodyBones.LeftFoot).position + Vector3.up * 0.5f, Vector3.down, out RaycastHit leftHit, 2))
-            {
-                //TODO для Idle
-                //_leftFootPosition= Vector3.Lerp(lPos, leftHit.point + Vector3.up * offsetY, Time.deltaTime * 30f);
-               // _leftFootPosition= Vector3.Lerp(lPos, leftHit.point + Vector3.up * moveLegPerY.Evaluate(leftPos) , Time.deltaTime * rateForLerpMoveLeg);
-                _leftFootPosition= leftHit.point + Vector3.down * (offsetY * moveLegPerY.Evaluate(leftPos));
-                targetForLeft.position = new Vector3(_leftFoot.position.x, _leftFootPosition.y, leftPos);
-                
-                // _leftFootPosition= Vector3.Lerp(lPos, leftHit.point + Vector3.up * offsetY , Time.deltaTime * 30f);
-                
-                Debug.Log(moveLegPerY.Evaluate(leftPos));
-                _leftFootRotation= Quaternion.FromToRotation(transform.up, leftHit.normal) * transform.rotation;
-            }
-            Debug.DrawRay(animator.GetBoneTransform(HumanBodyBones.LeftFoot).position + Vector3.up * 0.5f, Vector3.down, Color.red);
-            
-            Vector3 rPos = _rightFoot.position;
-            if(Physics.Raycast(rPos + Vector3.up * 0.5f, Vector3.down, out RaycastHit rightHit, 2))
-            {
-                _rightFootPosition= Vector3.Lerp(rPos, rightHit.point + Vector3.up * offsetY, Time.deltaTime * 30f);
-                _rightFootRotation = Quaternion.FromToRotation(transform.up, rightHit.normal) * transform.rotation;
-            } 
-            
-            /*var body = animator.GetBoneTransform(HumanBodyBones.Hips);
-            if (Physics.Raycast(body.position, Vector3.down, out RaycastHit bodyHit, 2))
-            {
-                if (Vector3.Distance(body.position, bodyHit.point) < offsetBodyY ||Vector3.Distance(body.position, bodyHit.point) > offsetBodyY)
-                {
-                    root.transform.position = Vector3.Lerp(root.transform.position, new Vector3(root.transform.position.x, root.transform.position.y + offsetBodyY- Vector3.Distance(body.position, bodyHit.point),root.transform.position.z), Time.deltaTime * 30f);
-                }
-            }
-            Debug.DrawRay(body.position, Vector3.down, Color.blue);#1#
-        }*/
-
-/*private void OnAnimatorIK(int layerIndex)
-        {
-            if (moveWalk > 0)
-            {
-                animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot,  1f);
-                animator.SetIKRotationWeight(AvatarIKGoal.LeftFoot, 1f);
-                animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, 1f);
-                animator.SetIKRotationWeight(AvatarIKGoal.RightFoot, 1f);
-                
-                //var lPos = Vector3.Lerp(_leftFoot.position, _leftFootPosition, Time.deltaTime * 35);
-               // var lPos = Vector3.Lerp(_leftFoot.position, _leftFootPosition, Time.deltaTime * rateForLerpMoveLeg);
-                var lPos = Vector3.Lerp(_leftFoot.position, new Vector3(_leftFootPosition.x, _leftFootPosition.y, _leftFoot.position.z), Time.deltaTime * rateForLerpMoveLeg);
-                var rPos = Vector3.Lerp(_rightFoot.position, _rightFootPosition, Time.deltaTime * rateForLerpMoveLeg);
-                
-                var lRotation = Quaternion.Lerp(_leftFoot.rotation, _leftFootRotation, Time.deltaTime * rateForLerpMoveLeg);
-                var rRotation = Quaternion.Lerp(_rightFoot.rotation, _rightFootRotation, Time.deltaTime * rateForLerpMoveLeg);
-                
-                animator.SetIKPosition(AvatarIKGoal.LeftFoot, lPos);
-                //animator.SetIKRotation(AvatarIKGoal.LeftFoot, lRotation);
-                animator.SetIKPosition(AvatarIKGoal.RightFoot, rPos);
-                animator.SetIKRotation(AvatarIKGoal.RightFoot, rRotation);
-            }
-            else
-            {
-                var leftWeight =  moveLeftLeg.Evaluate(Mathf.Abs(leftPos));
-                var rightWeight =  moveLeftLeg.Evaluate(Mathf.Abs(rightPos));
-                animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot,  leftWeight);
-                animator.SetIKRotationWeight(AvatarIKGoal.LeftFoot, leftWeight);
-                animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, rightWeight);
-                animator.SetIKRotationWeight(AvatarIKGoal.RightFoot, rightWeight);
-                
-                animator.SetIKPosition(AvatarIKGoal.LeftFoot, _leftFootPosition);
-                animator.SetIKRotation(AvatarIKGoal.LeftFoot, _leftFootRotation);
-                animator.SetIKPosition(AvatarIKGoal.RightFoot, _rightFootPosition);
-                animator.SetIKRotation(AvatarIKGoal.RightFoot, _rightFootRotation);
-            }
-        }*/
